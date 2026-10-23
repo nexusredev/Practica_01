@@ -1,0 +1,4 @@
+P001,Cafe Americano,1.50,50
+P002,Capuchino,2.25,30
+P003,Empanada de Queso,1.00,40
+P004,Sandwich de Pollo,3.50,20

@@ -1,0 +1,142 @@
+package practica01_arraylist;
+
+import java.util.Scanner;
+
+public class MenuPrincipal {
+    private GestorProductos gestorProductos;
+    private GestorPedidos gestorPedidos;
+    private Scanner scanner;
+
+    public MenuPrincipal() {
+        this.gestorProductos = new GestorProductos();
+        this.gestorPedidos = new GestorPedidos();
+        this.scanner = new Scanner(System.in);
+        this.gestorPedidos.cargarVentas(this.gestorProductos);
+    }
+
+    public void iniciar() {
+        int opcion = -1;
+        do {
+            System.out.println("\n========== CAFETERÍA EL BUEN SABOR ==========");
+            System.out.println("1. Gestionar Catálogo de Productos");
+            System.out.println("2. Registrar Nuevo Pedido");
+            System.out.println("3. Generar Reporte de Ventas");
+            System.out.println("4. Salir");
+            System.out.print("Seleccione una opción: ");
+
+            try {
+                opcion = Integer.parseInt(scanner.nextLine());
+                switch (opcion) {
+                    case 1 -> gestionarCatalogo();
+                    case 2 -> registrarPedido();
+                    case 3 -> gestorPedidos.generarReporte();
+                    case 4 -> {
+                        gestorProductos.guardarProductos();
+                        gestorPedidos.guardarVentas();
+                        System.out.println("¡Gracias por utilizar el sistema!");
+                    }
+                    default -> System.out.println("Opción inválida. Intente de nuevo.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Error: Por favor, ingrese un número válido.");
+            }
+        } while (opcion != 4);
+    }
+
+    private void gestionarCatalogo() {
+        System.out.println("\n--- GESTIÓN DE CATÁLOGO ---");
+        System.out.println("1. Listar Productos");
+        System.out.println("2. Registrar Nuevo Producto");
+        System.out.print("Seleccione una opción: ");
+        try {
+            int subOpcion = Integer.parseInt(scanner.nextLine());
+            if (subOpcion == 1) {
+                System.out.println("\n--- CATÁLOGO ACTUAL ---");
+                var lista = gestorProductos.getListaProductos();
+                if (lista.isEmpty()) {
+                    System.out.println("No hay productos registrados.");
+                } else {
+                    lista.forEach(System.out::println);
+                }
+            } else if (subOpcion == 2) {
+                System.out.print("Ingrese ID único del producto: ");
+                var id = scanner.nextLine().trim();
+                if (gestorProductos.buscarPorId(id) != null) {
+                    System.out.println("Error: Ya existe un producto con ese ID.");
+                    return;
+                }
+                System.out.print("Ingrese Nombre: ");
+                var nombre = scanner.nextLine().trim();
+                System.out.print("Ingrese Precio: ");
+                double precio = Double.parseDouble(scanner.nextLine());
+                System.out.print("Ingrese Stock Inicial: ");
+                int stock = Integer.parseInt(scanner.nextLine());
+
+                gestorProductos.registrarProducto(new Producto(id, nombre, precio, stock));
+                System.out.println("Producto registrado con éxito.");
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Error en el formato de número ingresado.");
+        }
+    }
+
+    private void registrarPedido() {
+        System.out.println("\n--- REGISTRAR PEDIDO ---");
+        var listaProds = gestorProductos.getListaProductos();
+        if (listaProds.isEmpty()) {
+            System.out.println("No hay productos disponibles para venta.");
+            return;
+        }
+
+        var pedido = new Pedido(gestorPedidos.obtenerSiguienteId());
+        boolean agregarMas = true;
+
+        while (agregarMas) {
+            System.out.println("\nCatálogo Disponible:");
+            listaProds.forEach(System.out::println);
+
+            System.out.print("\nIngrese ID del producto a agregar: ");
+            var id = scanner.nextLine().trim();
+            var prod = gestorProductos.buscarPorId(id);
+
+            if (prod == null) {
+                System.out.println("Error: Producto no encontrado.");
+            } else {
+                System.out.print("Ingrese Cantidad solicitada: ");
+                try {
+                    int cant = Integer.parseInt(scanner.nextLine());
+                    if (cant <= 0) {
+                        System.out.println("La cantidad debe ser mayor a cero.");
+                    } else if (prod.getStock() < cant) {
+                        System.out.println("ALERTA: Stock insuficiente. Stock disponible: " + prod.getStock());
+                    } else {
+                        prod.descontarStock(cant);
+                        pedido.agregarProducto(prod, cant);
+                        System.out.println("Ítem agregado al pedido.");
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Error: Debe ingresar un valor entero.");
+                }
+            }
+
+            System.out.print("¿Desea agregar otro producto? (s/n): ");
+            var resp = scanner.nextLine().trim();
+            agregarMas = resp.equalsIgnoreCase("s");
+        }
+
+        if (!pedido.getProductos().isEmpty()) {
+            gestorPedidos.registrarVenta(pedido);
+            gestorProductos.guardarProductos();
+            System.out.println("\n-------------------------------------------");
+            System.out.printf(" VENTA REGISTRADA EXITOSAMENTE | TOTAL: $%.2f%n", pedido.calcularTotal());
+            System.out.println("-------------------------------------------");
+        } else {
+            System.out.println("Pedido cancelado. No se incluyeron productos.");
+        }
+    }
+
+    public static void main(String[] args) {
+        var menu = new MenuPrincipal();
+        menu.iniciar();
+    }
+}
